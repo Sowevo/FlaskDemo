@@ -1,2 +1,6 @@
-flask
+flask~=3.0.0
 flask_sqlalchemy
+Werkzeug~=3.0.1
+b2sdk~=1.29.0
+PyYAML~=6.0.1
+Pillow~=10.1.0

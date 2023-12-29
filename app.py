@@ -1,10 +1,23 @@
 # coding=utf-8
-from flask import Flask, render_template, jsonify
-from models.model import db, User
-from config import config
+import os
+import tempfile
 
-app = Flask(__name__)
-app.config.from_object(config)
+import yaml
+from flask import render_template, jsonify, request
+from werkzeug.utils import secure_filename
+
+import utils.NotionParse as NotionParse
+from models.model import db, User
+from utils.B2 import B2Uploader
+from utils.JsonFlask import CustomJSONProvider, JsonFlask
+
+app = JsonFlask(__name__)
+# 读取配置文件
+with open('config.yaml') as config_file:
+    config = yaml.safe_load(config_file)
+app.config.update(config)
+# 自定义json序列化
+app.json = CustomJSONProvider(app)
 
 db.init_app(app)
 with app.app_context():
@@ -12,9 +25,39 @@ with app.app_context():
 
 
 @app.route('/', methods=['GET', 'POST'])
-@app.route('/index', methods=['GET', 'POST'])
 def index():
     return 'Hello World!'
+
+
+@app.route('/import_notion', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return '文件缺失!'
+    file = request.files['file']
+    filename = secure_filename(file.filename)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        save_path = os.path.join(tmpdirname, filename)
+        file.save(save_path)
+        result = NotionParse.parse(save_path)
+
+    for e in result:
+        for x in e['images']:
+            print(x)
+    return result
+
+
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return '文件缺失!'
+    file = request.files['file']
+    filename = secure_filename(file.filename)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        save_path = os.path.join(tmpdirname, filename)
+        file.save(save_path)
+        path = B2Uploader().upload_file(save_path)
+
+    return path
 
 
 @app.route('/addUser')

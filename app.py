@@ -26,7 +26,7 @@ with app.app_context():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    return 'Hello World!'
+    return render_template('index.html')
 
 
 @app.route('/import_notion', methods=['POST'])

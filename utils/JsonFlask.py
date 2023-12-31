@@ -17,14 +17,14 @@ class JsonFlask(Flask):
     def make_response(self, rv):
         """重写Flask的make_response方法。
         rv是视图函数的返回值。
-        如果rv是None或者是list、dict、str，
+        如果rv是None或者是list、dict
         会调用Resp的success方法将其转化为Resp对象。
         如果rv是Resp对象，会调用其to_dict方法将其转化为dict，
         然后通过jsonify将其转化为JSON格式的HTTP响应。
         最后，如果以上需求都不符合，即返回值已经是可以直接转化为HTTP响应的类型，
         或者是Response对象，则直接调用父类(Flask)原本的make_response方法处理返回值。
         """
-        if rv is None or isinstance(rv, (list, dict, str)):
+        if rv is None or isinstance(rv, (list, dict)):
             rv = Resp.success(rv)
 
         if isinstance(rv, Resp):

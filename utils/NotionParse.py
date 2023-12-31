@@ -6,6 +6,8 @@ import shutil
 import zipfile
 from datetime import datetime
 
+from utils.B2 import B2Uploader
+
 """
 处理notion导出的zip文件
 """
@@ -26,7 +28,7 @@ key_mapping = {
     "耗时": "duration",
     "舞台": "stage",
     "门票": "ticket",
-    "附近车站": "station_url"
+    "附近车站": "google_station_url"
 }
 
 
@@ -126,11 +128,13 @@ def find_image(_db_id, _name, _work_dir):
     _file_list = []
     # os.walk() 会遍历指定的目录及其所有的子目录，
     # 这个函数返回的是一个生成器，它会生成包含目录路径，目录名列表，文件名列表的元组
-    for dirpath, _, filenames in os.walk(file_path):
+    for dir_path, _, filenames in os.walk(file_path):
         for f in filenames:
             # 使用 os.path.join() 函数将目录路径和文件名组合成一个完整的文件路径
-            full_path = os.path.join(dirpath, f)
+            full_path = os.path.join(dir_path, f)
             _file_list.append(full_path)
+    # 上传文件到B2
+    _file_list = list(map(B2Uploader().upload_file, _file_list))
     return _file_list
 
 

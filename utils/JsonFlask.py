@@ -4,6 +4,7 @@ from datetime import datetime, date
 from flask import Flask, jsonify
 from flask.json.provider import DefaultJSONProvider
 
+from models.model import BaseModel
 from utils.Resp import Resp
 
 
@@ -15,21 +16,27 @@ class JsonFlask(Flask):
     """
 
     def make_response(self, rv):
-        """重写Flask的make_response方法。
-        rv是视图函数的返回值。
-        如果rv是None或者是list、dict
-        会调用Resp的success方法将其转化为Resp对象。
-        如果rv是Resp对象，会调用其to_dict方法将其转化为dict，
-        然后通过jsonify将其转化为JSON格式的HTTP响应。
-        最后，如果以上需求都不符合，即返回值已经是可以直接转化为HTTP响应的类型，
-        或者是Response对象，则直接调用父类(Flask)原本的make_response方法处理返回值。
         """
+        重写make_response方法
+        对于视图函数返回的数据进行处理
+        如果是Model实例或实例列表，先进行序列化，再用Resp.success方法封装一下
+        :param rv:
+        :return:
+        """
+        # 如果rv是Model列表，先对每个实例进行序列化
+        if isinstance(rv, list) and all(isinstance(item, BaseModel) for item in rv):
+            rv = [item.to_dict() for item in rv]
+        # 如果rv是单个的Model，进行序列化
+        elif isinstance(rv, BaseModel):
+            rv = rv.to_dict()
+
+        # 如果rv是字典或者列表（也即是已经序列化的实例或实例列表），用Resp.success方法封装一下
         if rv is None or isinstance(rv, (list, dict)):
             rv = Resp.success(rv)
-
+        # 如果是Resp对象，转化为可以用于HTTP响应的JSON格式
         if isinstance(rv, Resp):
             rv = jsonify(rv.to_dict())
-
+        # 返回封装后的HTTP响应
         return super().make_response(rv)
 
 

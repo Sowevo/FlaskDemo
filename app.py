@@ -10,6 +10,7 @@ import utils.NotionParse as NotionParse
 from models.model import db, Point
 from utils.B2 import B2Uploader
 from utils.JsonFlask import CustomJSONProvider, JsonFlask
+from utils.Resp import PageResp
 
 app = JsonFlask(__name__)
 # 读取配置文件
@@ -24,7 +25,7 @@ with app.app_context():
     db.create_all()
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
 
@@ -43,7 +44,6 @@ def upload_file():
             file.save(save_path)
             result = NotionParse.parse(save_path)
         for e in result:
-            # TODO 是不是可以用db.session.add_all()来批量添加
             db.session.add(Point.from_dict(e))
         db.session.commit()
         return result
@@ -68,59 +68,20 @@ def upload_image():
     return path
 
 
-# @app.route('/addUser')
-# def add_user():
-#     user1 = User('张三', 'zhangsan', 'password', 1, '1111', 1)
-#     user2 = User('李四', 'lisi', 'password', 0, '1111', 0)
-#
-#     db.session.add(user1)
-#     db.session.add(user2)
-#
-#     db.session.commit()
-#     db.session.close()
-#
-#     return "<p>add succssfully!"
-#
-#
-# @app.route('/query/all')
-# def query_by_all():
-#     users = User.query.all()  # 查询所有数据
-#     if not users:
-#         return "<p>No users exist! <a href='/query/adduser'>Add users first.</a></p>"
-#
-#     obj = {}
-#     arr = []
-#     for user in users:
-#         arr.append({
-#             'cname': user.cname,
-#             'ename': user.ename,
-#             'password': user.password,
-#             'is_admin': user.is_admin,
-#             'company_id': user.company_id,
-#             'enabled': user.enabled
-#         })
-#     obj['code'] = 200
-#     obj['data'] = arr
-#     return jsonify(obj)
-#
-#
-# @app.route('/query/<name>')
-# def query_by_name(name):
-#     user = User.query.filter_by(cname=name).first()  # 查询数据
-#
-#     if not user:
-#         return "<p>No user exist! <a href='/adduser'>Add user first.</a></p>"
-#
-#     obj = {
-#         'cname': user.cname,
-#         'ename': user.ename,
-#         'password': user.password,
-#         'is_admin': user.is_admin,
-#         'company_id': user.company_id,
-#         'enabled': user.enabled
-#     }
-#
-#     return jsonify(obj)
+@app.route('/all', methods=['GET'])
+def get_all_points():
+    """
+    获取所有景点
+    :return:
+    """
+    page = request.args.get('page', 1, type=int)  # 从请求参数中获取当前页数，默认为第一页
+    per_page = request.args.get('per_page', 10, type=int)  # 从请求参数中获取每页的数量，默认为10
+    points = Point.query.paginate(page=page,  # 使用 paginate 方法进行分页查询
+                                  per_page=per_page,
+                                  max_per_page=1000,
+                                  error_out=False
+                                  )
+    return PageResp.success(data=points.items, page=page, per_page=per_page, total=points.total)
 
 
 @app.errorhandler(404)

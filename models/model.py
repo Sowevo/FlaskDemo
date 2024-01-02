@@ -6,7 +6,29 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 
-class Point(db.Model):
+class BaseModel(db.Model):
+    __abstract__ = True  # 声明这是一个抽象类，不会创建表
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+    @classmethod
+    def from_dict(cls, data):
+        """
+        添加类方法用于从字典创建对象
+        :param data:
+        :return:
+        """
+        allowed_keys = set(cls.__init__.__code__.co_varnames[1:])  # 获取 __init__ 方法参数名集合
+        keys_to_remove = [k for k in data.keys() if k not in allowed_keys]  # 确定要在 data 字典中移除的键
+
+        for k in keys_to_remove:
+            del data[k]  # 从 data 字典中移除不存在的键/参数
+
+        return cls(**data)
+
+
+class Point(BaseModel):
     __tablename__ = 'point'
 
     # 以下是表的字段
@@ -62,13 +84,4 @@ class Point(db.Model):
     def images_list(self):
         return self.images.split(',') if self.images else []
 
-    # 添加类方法用于从字典创建对象
-    @classmethod
-    def from_dict(cls, data):
-        allowed_keys = set(cls.__init__.__code__.co_varnames[1:])  # 获取 __init__ 方法参数名集合
-        keys_to_remove = [k for k in data.keys() if k not in allowed_keys]  # 确定要在 data 字典中移除的键
 
-        for k in keys_to_remove:
-            del data[k]  # 从 data 字典中移除不存在的键/参数
-
-        return cls(**data)

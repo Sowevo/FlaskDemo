@@ -1,10 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet">
     <meta charset="UTF-8">
     <title>Index</title>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            initTable();
+        });
+
+        function initTable() {
+            const language = {
+                "sProcessing": "处理中...",
+                "sLengthMenu": "显示 _MENU_ 项结果",
+                "sZeroRecords": "没有匹配结果",
+                "sInfo": "当前第 _START_ 至 _END_ 条记录，共 _TOTAL_ 条",
+                "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+                "sInfoFiltered": "(共 _MAX_ 页)",
+                "sInfoPostFix": "",
+                "sSearch": "搜索:",
+                "sUrl": "",
+                "sEmptyTable": "表中数据为空",
+                "sLoadingRecords": "载入中...",
+                "sInfoThousands": ",",
+                "oPaginate": {"sFirst": "首页", "sPrevious": "上页", "sNext": "下页", "sLast": "末页"}
+            };
+            const columns = [
+                // {
+                //     data: "id",// id
+                //     
+                //     sortable: true,
+                // },
+                {
+                    title: "名称",
+                    data: "name",
+                    width:"100px",
+                    sortable: true
+                },
+                {
+                    title: "国家",
+                    data: "country",
+                    
+                    sortable: true
+                },
+                {
+                    title: "州",
+                    data: "state",// 州
+                    
+                    sortable: true
+                },
+                {
+                    title: "城市",
+                    data: "city", // 城市
+                    
+                    sortable: true
+                },
+                {
+                    title: "备注",
+                    data: "remarks", // 备注
+                    
+                    sortable: false
+                },
+                {
+                    title: "舞台",
+                    data: "stage",// 舞台
+                    
+                    sortable: true
+                },
+                {
+                    title: "门票",
+                    data: "ticket", // 门票
+                    
+                    sortable: false
+                },
+                {
+                    title: "坐标",
+                    data: "coordinates", // 坐标
+                    
+                    sortable: false
+                },
+                {
+                    title: "耗时",
+                    data: "duration", //
+                    
+                    sortable: false
+                },
+                {
+                    title: "地图链接",
+                    data: "google_map_url",
+                    
+                    sortable: false,
+                    render: function (data, type, row, meta) {
+                        return '<a href="' + data + '" target="_blank">谷歌地图</a>';
+                    }
+                },
+                {
+                    title: "附近车站",
+                    data: "google_station_url",
+                    
+                    sortable: false,
+                    render: function (data, type, row, meta) {
+                        return '<a href="' + data + '" target="_blank">谷歌站台</a>';
+                    }
+                },
+                // {
+                //     data: "images",
+                //     
+                //     sortable: false
+                // },
+                {
+                    title: "更新时间",
+                    data: "last_update",
+                    
+                    sortable: true
+                },
+                {
+                    title: "创建时间",
+                    data: "create_time",
+                    
+                    sortable: true
+                },
+            ];
+            $('#table').DataTable({
+                'serverSide': true,     // 开启服务端分页
+                'processing': true,
+                "autoWidth": false, // 自动计算列宽禁用
+                'pageLength': 11, // 每页显示条数
+                'ajax': {
+                    'url': '/all',
+                    'type': 'GET',
+                    'dataSrc': function (json) {
+                        json.recordsFiltered = json.total;  // 指定记录数
+                        json.recordsTotal = json.total_pages; // 指定页数
+                        return json.data;
+                    },
+                    'data': function (data) { // 定义初始化参数 :data为向后台发送的参数obj
+                        console.log(data)
+                        return $.extend({}, {}, { //自定义参数
+                            "page": data.start / data.length + 1, //当前页
+                            "per_page": data.length,
+                            "order": data.order[0].dir, //升序或降序：随鼠标点击发生变化
+                            "sort": data.order[0].column == 1 ? "id" : "name" //获取排序列：下标从0开始，1代表第二列（因为只有两列参与排序，所以简单写了）
+                        })
+                    },
+                },
+                'lengthChange': false,
+                'searching': false,
+                'info': true,
+
+                language: language, //国际化
+                columns: columns,
+                columnsDefs: [
+                    { "width": "100px", "targets": 0 }
+                ]
+            })
+        }
+    </script>
 </head>
 <body>
-index
+<table id="table" class="table table-responsive table-hover"></table>
 </body>
 </html>

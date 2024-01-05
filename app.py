@@ -4,6 +4,7 @@ import tempfile
 
 import yaml
 from flask import render_template, request
+from sqlalchemy import desc, asc
 from werkzeug.utils import secure_filename
 
 import utils.NotionParse as NotionParse
@@ -68,19 +69,34 @@ def upload_image():
     return path
 
 
-@app.route('/all', methods=['GET'])
+@app.route('/all', methods=['POST'])
 def get_all_points():
     """
     获取所有景点
     :return:
     """
-    page = request.args.get('page', 1, type=int)  # 从请求参数中获取当前页数，默认为第一页
-    per_page = request.args.get('per_page', 10, type=int)  # 从请求参数中获取每页的数量，默认为10
-    points = Point.query.paginate(page=page,  # 使用 paginate 方法进行分页查询
-                                  per_page=per_page,
-                                  max_per_page=1000,
-                                  error_out=False
-                                  )
+    if not request.is_json:
+        return PageResp.error(msg='请求参数错误')
+
+    data = request.get_json()
+    page = data.get('page', 1)  # 从请求参数中获取当前页数，默认为第一页
+    per_page = data.get('per_page', 10)  # 从请求参数中获取每页的数量，默认为10
+    orders = data.get('orders', [])  # 从请求参数中获取排序规则, 默认为空列表
+
+    query = Point.query
+
+    # 根据排序规则进行排序
+    for order in orders:
+        if order["dir"] == "desc":
+            query = query.order_by(desc(getattr(Point, order["column"])))
+        else:
+            query = query.order_by(asc(getattr(Point, order["column"])))
+
+    points = query.paginate(page=page,
+                            per_page=per_page,
+                            max_per_page=1000,
+                            error_out=False
+                            )
     return PageResp.success(data=points.items, page=page, per_page=per_page, total=points.total)
 
 

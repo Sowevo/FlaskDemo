@@ -29,69 +29,59 @@
                 "oPaginate": {"sFirst": "首页", "sPrevious": "上页", "sNext": "下页", "sLast": "末页"}
             };
             const columns = [
-                // {
-                //     data: "id",// id
-                //     
-                //     sortable: true,
-                // },
                 {
                     title: "名称",
                     data: "name",
-                    width:"100px",
-                    sortable: true
+                    width: "100px",
+                    sortable: true,
+                    render: function (data, type, row, meta) {
+                        return '<a href="/detail/' + row.id + '" target="_blank">' + data + '</a>';
+                    }
                 },
                 {
                     title: "国家",
                     data: "country",
-                    
                     sortable: true
                 },
                 {
                     title: "州",
                     data: "state",// 州
-                    
                     sortable: true
                 },
                 {
                     title: "城市",
                     data: "city", // 城市
-                    
                     sortable: true
                 },
                 {
                     title: "备注",
                     data: "remarks", // 备注
-                    
                     sortable: false
                 },
                 {
                     title: "舞台",
                     data: "stage",// 舞台
-                    
                     sortable: true
                 },
                 {
                     title: "门票",
                     data: "ticket", // 门票
-                    
                     sortable: false
                 },
                 {
                     title: "坐标",
                     data: "coordinates", // 坐标
-                    
                     sortable: false
                 },
-                {
-                    title: "耗时",
-                    data: "duration", //
-                    
-                    sortable: false
-                },
+                // {
+                //     title: "耗时",
+                //     data: "duration", //
+                //     sortable: false
+                // },
                 {
                     title: "地图链接",
                     data: "google_map_url",
-                    
+
                     sortable: false,
                     render: function (data, type, row, meta) {
                         return '<a href="' + data + '" target="_blank">谷歌地图</a>';
@@ -100,27 +90,20 @@
                 {
                     title: "附近车站",
                     data: "google_station_url",
-                    
+
                     sortable: false,
                     render: function (data, type, row, meta) {
                         return '<a href="' + data + '" target="_blank">谷歌站台</a>';
                     }
                 },
-                // {
-                //     data: "images",
-                //     
-                //     sortable: false
-                // },
                 {
                     title: "更新时间",
                     data: "last_update",
-                    
                     sortable: true
                 },
                 {
                     title: "创建时间",
                     data: "create_time",
-                    
                     sortable: true
                 },
             ];
@@ -129,23 +112,35 @@
                 'processing': true,
                 "autoWidth": false, // 自动计算列宽禁用
                 'pageLength': 11, // 每页显示条数
+                "order": [],  //取消默认排序
                 'ajax': {
                     'url': '/all',
-                    'type': 'GET',
+                    "type": "POST",
+                    "contentType": "application/json",
                     'dataSrc': function (json) {
                         json.recordsFiltered = json.total;  // 指定记录数
                         json.recordsTotal = json.total_pages; // 指定页数
                         return json.data;
                     },
-                    'data': function (data) { // 定义初始化参数 :data为向后台发送的参数obj
-                        console.log(data)
-                        return $.extend({}, {}, { //自定义参数
-                            "page": data.start / data.length + 1, //当前页
+                    "data": function (data) {
+                        console.log(data);
+                        let orders = [];
+                        for (let i = 0; i < data.order.length; i++) {
+                            let column = data.columns[data.order[i].column];
+                            let dir = data.order[i].dir;
+                            if (column.orderable) {
+                                orders.push({
+                                    column: column.data,
+                                    dir: dir
+                                });
+                            }
+                        }
+                        return JSON.stringify({
+                            "page": data.start / data.length + 1,
                             "per_page": data.length,
-                            "order": data.order[0].dir, //升序或降序：随鼠标点击发生变化
-                            "sort": data.order[0].column == 1 ? "id" : "name" //获取排序列：下标从0开始，1代表第二列（因为只有两列参与排序，所以简单写了）
-                        })
-                    },
+                            "orders": orders
+                        });
+                    }
                 },
                 'lengthChange': false,
                 'searching': false,
@@ -154,7 +149,7 @@
                 language: language, //国际化
                 columns: columns,
                 columnsDefs: [
-                    { "width": "100px", "targets": 0 }
+                    {"width": "100px", "targets": 0}
                 ]
             })
         }

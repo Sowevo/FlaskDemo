@@ -11,7 +11,7 @@ import utils.NotionParse as NotionParse
 from models.model import db, Point
 from utils.B2 import B2Uploader
 from utils.JsonFlask import CustomJSONProvider, JsonFlask
-from utils.Resp import PageResp
+from utils.Resp import PageResp, Resp
 
 app = JsonFlask(__name__)
 # 读取配置文件
@@ -76,28 +76,29 @@ def get_all_points():
     :return:
     """
     if not request.is_json:
-        return PageResp.error(msg='请求参数错误')
+        return Resp.error(msg='请求参数错误')
 
     data = request.get_json()
     page = data.get('page', 1)  # 从请求参数中获取当前页数，默认为第一页
-    per_page = data.get('per_page', 10)  # 从请求参数中获取每页的数量，默认为10
-    orders = data.get('orders', [])  # 从请求参数中获取排序规则, 默认为空列表
+    limit = data.get('limit', 10)  # 从请求参数中获取每页的数量，默认为10
+    order_field = data.get('field', None)
+    order = data.get('order', None)
 
     query = Point.query
 
     # 根据排序规则进行排序
-    for order in orders:
-        if order["dir"] == "desc":
-            query = query.order_by(desc(getattr(Point, order["column"])))
+    if order_field and order:
+        if order == 'desc':
+            query = query.order_by(desc(getattr(Point, order_field)))
         else:
-            query = query.order_by(asc(getattr(Point, order["column"])))
+            query = query.order_by(asc(getattr(Point, order_field)))
 
     points = query.paginate(page=page,
-                            per_page=per_page,
+                            per_page=limit,
                             max_per_page=1000,
                             error_out=False
                             )
-    return PageResp.success(data=points.items, page=page, per_page=per_page, total=points.total)
+    return PageResp.success(data=points.items, count=points.total)
 
 
 @app.errorhandler(404)
@@ -111,4 +112,4 @@ def internal_server_error(e):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=3333)

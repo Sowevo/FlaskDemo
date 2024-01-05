@@ -1,5 +1,4 @@
 # coding=utf-8
-import math
 
 from models.model import BaseModel
 
@@ -57,28 +56,20 @@ class Resp(object):
 
 
 class PageResp(Resp):
-    def __init__(self, data, code, msg, page, per_page, total):
+    def __init__(self, data, code, msg, count):
         super().__init__(data, code, msg)
-        # 表示当前是第几页
-        self.page = page
-        # 表示每页有多少条数据
-        self.per_page = per_page
         # 表示总共有多少条数据
-        self.total = total
-        # 表示总共有多少页,动态计算
-        self.total_pages = math.ceil(self.total / self.per_page)
+        self.count = count
 
     @classmethod
-    def success(cls, data=None, code=0, msg='success', page=1, per_page=10, total=0):
+    def success(cls, data=None, code=0, msg='success', count=0):
         """
         创建一个表示成功的分页响应对象
 
-        :param page:
-        :param per_page:
-        :param total:
+        :param count:
         :param data: 响应数据，默认为 None
         :param msg: 响应消息，默认为 'success'
         :param code: 响应代码，0 代表成功，其他 代表失败，默认为 0
         :return: 一个表示成功的 Resp 对象
         """
-        return cls(data, code, msg, page, per_page, total)
+        return cls(data, code, msg, count)

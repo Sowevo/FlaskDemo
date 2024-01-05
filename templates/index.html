@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Demo</title>
+    <link href="//unpkg.com/layui@2.9.3/dist/css/layui.css" rel="stylesheet">
+    <script src="//unpkg.com/layui@2.9.3/dist/layui.js"></script>
+</head>
+<body>
+<table class="layui-hide" id="point_table"></table>
+
+
+<script>
+    layui.use('table', function () {
+        const columns = [[
+            {
+                field: 'id',
+                title: 'ID',
+                hide: true
+            },
+            {
+                field: 'name',
+                width: 200,
+                title: '名称',
+                sort: true,
+                fixed: 'left'
+            },
+            {
+                field: 'country',
+                width: 80,
+                title: '国家',
+                sort: true,
+            },
+            {
+                field: 'state',
+                width: 100,
+                title: '州/省',
+                sort: true,
+            },
+            {
+                field: 'city',
+                width: 120,
+                title: '城市',
+                sort: true,
+            },
+            {
+                field: 'stage',
+                width: 120,
+                title: '舞台',
+                sort: true,
+            },
+            {
+                field: 'ticket',
+                width: 100,
+                title: '门票'
+            },
+            {
+                field: 'remarks',
+                width: 200,
+                title: '备注'
+            },
+            {
+                field: 'coordinates',
+                width: 200,
+                title: '坐标',
+                templet: function (d) {
+                    return `<a href="https://www.google.com/maps/search/${d.coordinates}" class="layui-table-link" target="_blank">${d.coordinates}</a>`;
+                }
+            },
+            {
+                field: 'duration',
+                title: '游玩时长',
+                hide: true
+            },
+            {
+                field: 'google_map_url',
+                width: 100,
+                title: '地图链接',
+                templet: function (d) {
+                    return `<a href="${d.google_map_url}" class="layui-table-link" target="_blank">地图链接</a>`;
+                }
+            },
+            {
+                field: 'google_station_url',
+                width: 100,
+                title: '附近车站',
+                templet: function (d) {
+                    return `<a href="${d.google_station_url}" class="layui-table-link" target="_blank">附近车站</a>`;
+                }
+            },
+            {
+                field: 'google_street_view_url',
+                title: '街景链接',
+                hide: true
+            },
+            {
+                field: 'images',
+                title: '图片',
+                hide: true
+            },
+            {
+                field: 'create_time',
+                width: 180,
+                title: '创建时间',
+                sort: true,
+            },
+            {
+                field: 'last_update',
+                width: 180,
+                title: '更新时间',
+                sort: true,
+            },
+        ]]
+        const table = layui.table;
+        // 创建渲染实例
+        table.render({
+            elem: '#point_table',
+            url: '/all',
+            method: 'post',
+            autoSort: false, // 禁用前端自动排序。
+            contentType: 'application/json',
+            page: { // 支持传入 laypage 组件的所有参数（某些参数除外，如：jump/elem） - 详见文档
+                layout: ['limit', 'count', 'prev', 'page', 'next', 'skip', 'refresh'], //自定义分页布局
+                first: '首页',
+                last: '尾页',
+                groups: 5, //5个连续页码
+                limit: 10, //每页显示条数
+                limits: [10, 20, 30, 40, 50], //每页条数的选择项
+            },
+            cols: columns,
+        });
+
+        // 触发排序事件
+        table.on('sort(point_table)', function (obj) {
+            console.log(obj.field); // 当前排序的字段名
+            console.log(obj.type); // 当前排序类型：desc（降序）、asc（升序）、null（空对象，默认排序）
+            console.log(this); // 当前排序的 th 对象
+
+            // 尽管我们的 table 自带排序功能，但并没有请求服务端。
+            // 有些时候，你可能需要根据当前排序的字段，重新向后端发送请求，从而实现服务端排序，如：
+            table.reload('point_table', {
+                initSort: obj, // 记录初始排序，如果不设的话，将无法标记表头的排序状态。
+                where: { // 请求参数（注意：这里面的参数可任意定义，并非下面固定的格式）
+                    field: obj.field, // 排序字段
+                    order: obj.type // 排序方式
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

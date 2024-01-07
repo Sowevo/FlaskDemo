@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,11 +9,30 @@
 </head>
 <body>
 <table class="layui-hide" id="point_table"></table>
-
-
+<script type="text/html" id="toolbar">
+    <div class="layui-btn-container">
+        <button class="layui-btn layui-btn-sm" lay-event="add">添加</button>
+        <button class="layui-btn layui-btn-sm" lay-event="delete">删除</button>
+        <button class="layui-btn layui-btn-sm" lay-event="update">编辑</button>
+    </div>
+    <div class="site-text" style="padding:20px; display: none" id="add_window">
+        <div class="layui-form-item">
+            <label class="layui-form-label">名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" lay-verify="required" placeholder="请输入" autocomplete="off"
+                       class="layui-input">
+            </div>
+        </div>
+    </div>
+</script>
 <script>
-    layui.use('table', function () {
+    layui.use("table", function () {
+        const $ = layui.$;
         const columns = [[
+            {
+                type: 'checkbox',
+                fixed: 'left'
+            },
             {
                 field: 'id',
                 title: 'ID',
@@ -24,7 +43,10 @@
                 width: 200,
                 title: '名称',
                 sort: true,
-                fixed: 'left'
+                fixed: 'left',
+                templet: function (d) {
+                    return `<a class="layui-table-link" lay-event="detail">${d.name}</a>`;
+                }
             },
             {
                 field: 'country',
@@ -119,26 +141,23 @@
             url: '/all',
             method: 'post',
             autoSort: false, // 禁用前端自动排序。
+            toolbar: '#toolbar', // 开启头部工具栏
             contentType: 'application/json',
             page: { // 支持传入 laypage 组件的所有参数（某些参数除外，如：jump/elem） - 详见文档
                 layout: ['limit', 'count', 'prev', 'page', 'next', 'skip', 'refresh'], //自定义分页布局
                 first: '首页',
                 last: '尾页',
                 groups: 5, //5个连续页码
-                limit: 10, //每页显示条数
+                limit: 15, //每页显示条数
                 limits: [10, 20, 30, 40, 50], //每页条数的选择项
             },
             cols: columns,
+            height: 'full-0',
+            even: true, // 开启隔行背景
         });
 
         // 触发排序事件
         table.on('sort(point_table)', function (obj) {
-            console.log(obj.field); // 当前排序的字段名
-            console.log(obj.type); // 当前排序类型：desc（降序）、asc（升序）、null（空对象，默认排序）
-            console.log(this); // 当前排序的 th 对象
-
-            // 尽管我们的 table 自带排序功能，但并没有请求服务端。
-            // 有些时候，你可能需要根据当前排序的字段，重新向后端发送请求，从而实现服务端排序，如：
             table.reload('point_table', {
                 initSort: obj, // 记录初始排序，如果不设的话，将无法标记表头的排序状态。
                 where: { // 请求参数（注意：这里面的参数可任意定义，并非下面固定的格式）
@@ -146,6 +165,65 @@
                     order: obj.type // 排序方式
                 }
             });
+        });
+
+        // 监听行工具事件
+        table.on('tool(point_table)', function (obj) {
+            const data = obj.data;
+            if (obj.event === 'detail') {
+                layer.open({
+                    type: 2,
+                    title: false, // 不显示标题栏
+                    offset: 'r',
+                    anim: 'slideLeft', // 从右往左
+                    area: ['60%', '100%'],  // 宽高
+                    shade: 0.1, // 遮罩
+                    shadeClose: true,
+                    id: 'detail_layer',
+                    maxmin: true, // 最大化按钮
+                    closeBtn: 0, // 关闭按钮
+                    min: function (layero, index, that) {
+                        // 不要最小化,直接关了罢
+                        layer.close(index);
+                        return false;
+                    },
+                    content: `/detail/${data.id}.html`,
+                });
+            }
+        });
+
+        // 监听头部工具栏事件
+        table.on('toolbar(point_table)', function (obj) {
+            // 根据不同的事件名进行相应的操作
+            switch (obj.event) { // 对应模板元素中的 lay-event 属性值
+                case 'add':
+                    layer.open({
+                        type: 1, //Page层类型
+                        title: '新增',
+                        offset: 'r',
+                        anim: 'slideLeft', // 从右往左
+                        area: ['60%', '100%'],  // 宽高
+                        shade: 0.1, // 遮罩
+                        shadeClose: true, //点击遮罩关闭
+                        btn: ['确定', '取消'], //按钮组
+                        content: $("#add_window"),
+                        yes: function (index, layero, that) {
+                            layer.msg('假装添加了');
+                            layer.close(index);
+                        }
+                    });
+                    break;
+                case 'delete':
+                    const checkData = table.checkStatus(obj.config.id).data; // 获取选中行数据
+                    if (checkData.length === 0) {
+                        return layer.msg('请选择一些删除');
+                    }
+                    layer.msg('假装删除了');
+                    break;
+                case 'update':
+                    layer.msg('假装编辑了');
+                    break;
+            }
         });
     });
 </script>

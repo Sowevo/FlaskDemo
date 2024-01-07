@@ -3,12 +3,13 @@ import os
 import tempfile
 
 import yaml
-from flask import render_template, request
+from flask import render_template, request, redirect, url_for
 from sqlalchemy import desc, asc
 from werkzeug.utils import secure_filename
 
 import utils.NotionParse as NotionParse
-from models.model import db, Point
+from models.model import db, Point, City
+from utils import ExcelParse
 from utils.B2 import B2Uploader
 from utils.JsonFlask import CustomJSONProvider, JsonFlask
 from utils.Resp import PageResp, Resp
@@ -27,14 +28,28 @@ with app.app_context():
 
 
 @app.route('/', methods=['GET'])
+def home():
+    return redirect(url_for('index'))
+
+
+@app.route('/index.html', methods=['GET'])
 def index():
     return render_template('index.html')
 
 
+@app.route('/detail/<id>.html', methods=['GET'])
+def detail(id):
+    point = Point.query.filter_by(id=id).first()
+    if point:
+        return render_template('detail.html', data=point)
+    else:
+        return render_template('404.html'), 404
+
+
 @app.route('/import_notion', methods=['POST'])
-def upload_file():
+def import_notion():
     if 'file' not in request.files:
-        return '文件缺失!'
+        return Resp.error(msg='文件缺失!')
     file = request.files['file']
     filename = secure_filename(file.filename)
     # 如果数据库中没有数据，才执行解析与添加
@@ -49,7 +64,28 @@ def upload_file():
         db.session.commit()
         return result
     else:
-        return '数据库中已有数据!'
+        return Resp.error(msg='数据库中已有数据!')
+
+
+@app.route('/import_city', methods=['POST'])
+def import_city():
+    if 'file' not in request.files:
+        return Resp.error(msg='文件缺失!')
+    file = request.files['file']
+    filename = secure_filename(file.filename)
+    # 如果数据库中没有数据，才执行解析与添加
+    count = City.query.count()
+    if count <= 0:
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            save_path = os.path.join(tmp_dirname, filename)
+            file.save(save_path)
+            result = ExcelParse.parse(save_path)
+        for e in result:
+            db.session.add(City.from_dict(e))
+        db.session.commit()
+        return result
+    else:
+        return Resp.error(msg='数据库中已有数据!')
 
 
 @app.route('/upload_image', methods=['POST'])
@@ -70,7 +106,7 @@ def upload_image():
 
 
 @app.route('/all', methods=['POST'])
-def get_all_points():
+def all_points():
     """
     获取所有景点
     :return:
@@ -99,6 +135,18 @@ def get_all_points():
                             error_out=False
                             )
     return PageResp.success(data=points.items, count=points.total)
+
+
+@app.route('/add', methods=['POST'])
+def add_point():
+    if not request.is_json:
+        return Resp.error(msg='请求参数错误')
+    # TODO 要加校验么???
+    data = request.get_json()
+    point = Point.from_dict(data)
+    db.session.add(point)
+    db.session.commit()
+    return point
 
 
 @app.errorhandler(404)

@@ -85,3 +85,29 @@ class Point(BaseModel):
         return self.images.split(',') if self.images else []
 
 
+class City(BaseModel):
+    """
+    城市表
+    目前有国家、省份、城市三个字段
+    如果省份为空，则表示是个国家
+    如果城市为空，则表示是个省份
+    如果城市不为空，则表示是个城市
+    """
+    __tablename__ = 'city'
+
+    # 以下是表的字段
+    id = db.Column(db.Integer, primary_key=True)
+    # 国家
+    country = db.Column(db.String(60))
+    # 城市
+    city = db.Column(db.String(60))
+    # 省份
+    state = db.Column(db.String(60))
+    # 排序
+    sort = db.Column(db.Integer, default=0)
+
+    def __init__(self, country, city, state, sort=0):
+        self.country = country
+        self.city = city
+        self.state = state
+        self.sort = sort

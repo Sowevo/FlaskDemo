@@ -18,16 +18,32 @@
     <div class="site-text" style="padding:20px; display: none" id="add_window">
         <div class="layui-form-item">
             <label class="layui-form-label">名称</label>
-            <div class="layui-input-block">
+            <div class="layui-input-inline">
                 <input type="text" name="name" lay-verify="required" placeholder="请输入" autocomplete="off"
-                       class="layui-input">
+                       class="layui-input" data-1p-ignore>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">区域</label>
+            <div style="display: flex; align-items: center;">
+                <div class="layui-input-inline" style="width: 100px; margin-right: 0;">
+                    <select id="country" lay-filter="country-select" lay-verify="required"></select>
+                </div>
+                <div class="layui-input-inline" style="width: 100px; margin-right: 0;">
+                    <select id="state" lay-filter="state-select" lay-verify="required"></select>
+                </div>
+                <div class="layui-input-inline" style="width: 100px;">
+                    <select id="city" lay-filter="city-select" lay-verify="required"></select>
+                </div>
             </div>
         </div>
     </div>
 </script>
 <script>
-    layui.use("table", function () {
+    layui.use(["table", "form"], function () {
         const $ = layui.$;
+        const table = layui.table;
+        const form = layui.form;
         const columns = [[
             {
                 type: 'checkbox',
@@ -134,11 +150,11 @@
                 sort: true,
             },
         ]]
-        const table = layui.table;
+
         // 创建渲染实例
         table.render({
             elem: '#point_table',
-            url: '/all',
+            url: '/point/all',
             method: 'post',
             autoSort: false, // 禁用前端自动排序。
             toolbar: '#toolbar', // 开启头部工具栏
@@ -225,6 +241,50 @@
                     break;
             }
         });
+
+        // 国家变更的时候，更新州/省的选择框
+        form.on('select(country)', function(data){
+            $('#state').empty();
+            $('#city').empty();
+            updateSelectList('state', data.value);
+        });
+        // 州/省变更的时候，更新城市的选择框
+        form.on('select(state)', function(data){
+            $('#city').empty();
+            updateSelectList('city', data.value);
+        });
+
+
+
+        function updateSelectList(type, parent) {
+            console.log(type, parent);
+            $.ajax({
+                url: '/city/list',
+                type: 'POST',
+                contentType: 'application/json',
+                dataType: 'json',
+                data: JSON.stringify({
+                    type: type,
+                    parent: parent
+                }),
+                success: function (data) {
+                    select_element = $(`#${type}`)
+                    $.each(data.data, function (index, item) {
+                        select_element.append(new Option(item.name, item.name));
+                    });
+                    // 更新选择框
+                    form.render(select_element);
+                    if (type === 'country') {
+                        updateSelectList('state', data.data[0].name);
+                    }
+                    if (type === 'state') {
+                        updateSelectList('city', data.data[0].name);
+                    }
+                }
+            });
+        }
+        // 初始化选择框的国家数据
+        updateSelectList('country', '');
     });
 </script>
 

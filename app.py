@@ -105,7 +105,7 @@ def upload_image():
     return path
 
 
-@app.route('/all', methods=['POST'])
+@app.route('/point/all', methods=['POST'])
 def all_points():
     """
     获取所有景点
@@ -137,7 +137,7 @@ def all_points():
     return PageResp.success(data=points.items, count=points.total)
 
 
-@app.route('/add', methods=['POST'])
+@app.route('/point/add', methods=['POST'])
 def add_point():
     if not request.is_json:
         return Resp.error(msg='请求参数错误')
@@ -147,6 +147,37 @@ def add_point():
     db.session.add(point)
     db.session.commit()
     return point
+
+
+@app.route('/city/list', methods=['POST'])
+def list_city():
+    if not request.is_json:
+        return Resp.error(msg='请求参数错误')
+    data = request.get_json()
+    parent = data.get('parent', '')
+    _type = data.get('type', 'country')
+    if _type == 'country':
+        query = City.query.filter(City.state.is_(None))
+        cities = query.all()
+        # 转换为字典,只要code和name
+        cities = [{'code': c.code, 'name': c.country} for c in cities]
+    elif _type == 'state':
+        query = City.query.filter(City.city.is_(None))
+        if parent:
+            query = query.filter_by(country=parent)
+        cities = query.all()
+        # 转换为字典,只要code和name
+        cities = [{'code': c.code, 'name': c.state} for c in cities]
+    elif _type == 'city':
+        query = City.query.filter(City.city.isnot(None))
+        if parent:
+            query = query.filter_by(state=parent)
+        cities = query.all()
+        # 转换为字典,只要code和name
+        cities = [{'code': c.code, 'name': c.city} for c in cities]
+    else:
+        cities = []
+    return cities
 
 
 @app.errorhandler(404)

@@ -105,9 +105,15 @@ class City(BaseModel):
     state = db.Column(db.String(60))
     # 排序
     sort = db.Column(db.Integer, default=0)
+    # 编码
+    code = db.Column(db.String(60))
+    # 是否激活
+    active = db.Column(db.Boolean, default=True)
 
-    def __init__(self, country, city, state, sort=0):
+    def __init__(self, country, city, state, code, sort=0, active=True):
         self.country = country
         self.city = city
         self.state = state
         self.sort = sort
+        self.code = code
+        self.active = active

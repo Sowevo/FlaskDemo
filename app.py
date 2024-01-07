@@ -4,7 +4,7 @@ import tempfile
 
 import yaml
 from flask import render_template, request, redirect, url_for
-from sqlalchemy import desc, asc
+from sqlalchemy import desc, asc, func
 from werkzeug.utils import secure_filename
 
 import utils.NotionParse as NotionParse
@@ -149,34 +149,75 @@ def add_point():
     return point
 
 
+@app.route('/city/fix_sort', methods=['POST'])
+def fix_sort():
+    """
+    重新盘点排序,
+    根据point中出现的次数更新city中的sort字段
+    :return:
+    """
+    # country
+    results = (
+        db.session.query(Point.country, func.count(Point.country))
+        .group_by(Point.country)
+        .all()
+    )
+    for result in results:
+        country = result[0]
+        count = result[1]
+        db.session.query(City).filter_by(country=country).filter(City.city.is_(None)).filter(
+            City.state.is_(None)).update({'sort': count})
+    # state
+    results = (
+        db.session.query(Point.state, func.count(Point.state))
+        .group_by(Point.state)
+        .all()
+    )
+    for result in results:
+        state = result[0]
+        count = result[1]
+        db.session.query(City).filter_by(state=state).filter(City.city.is_(None)).update({'sort': count})
+    # city
+    results = (
+        db.session.query(Point.city, func.count(Point.city))
+        .group_by(Point.city)
+        .all()
+    )
+    for result in results:
+        city = result[0]
+        count = result[1]
+        db.session.query(City).filter_by(city=city).update({'sort': count})
+    db.session.commit()
+    return Resp.success("盘点好了!")
+
+
 @app.route('/city/list', methods=['POST'])
 def list_city():
     if not request.is_json:
         return Resp.error(msg='请求参数错误')
+
     data = request.get_json()
     parent = data.get('parent', '')
     _type = data.get('type', 'country')
-    if _type == 'country':
-        query = City.query.filter(City.state.is_(None))
-        cities = query.all()
-        # 转换为字典,只要code和name
-        cities = [{'code': c.code, 'name': c.country} for c in cities]
-    elif _type == 'state':
-        query = City.query.filter(City.city.is_(None))
-        if parent:
-            query = query.filter_by(country=parent)
-        cities = query.all()
-        # 转换为字典,只要code和name
-        cities = [{'code': c.code, 'name': c.state} for c in cities]
-    elif _type == 'city':
-        query = City.query.filter(City.city.isnot(None))
-        if parent:
-            query = query.filter_by(state=parent)
-        cities = query.all()
-        # 转换为字典,只要code和name
-        cities = [{'code': c.code, 'name': c.city} for c in cities]
-    else:
-        cities = []
+
+    # _type 与 条件的映射关系
+    conditions = {
+        'country': [City.state.is_(None), City.city.is_(None), City.country.isnot(None)],
+        'state': [City.city.is_(None), City.state.isnot(None)],
+        'city': [City.city.isnot(None)]
+    }
+    # _type 与 parent对应字段 的映射关系
+    parent_field = {'country': 'country', 'state': 'country', 'city': 'state'}
+
+    # 错误请求类型直接返回空列表
+    if _type not in conditions:
+        return []
+    query = City.query.filter(*conditions[_type])
+    if parent:
+        query = query.filter_by(**{parent_field[_type]: parent})
+    cities = query.order_by(City.sort.desc()).all()
+    # 构造返回结果
+    cities = [{'code': c.code, 'name': getattr(c, _type)} for c in cities]
     return cities
 
 

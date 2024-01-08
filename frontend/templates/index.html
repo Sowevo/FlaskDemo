@@ -243,21 +243,24 @@
         });
 
         // 国家变更的时候，更新州/省的选择框
-        form.on('select(country)', function(data){
+        form.on('select(country)', function (data) {
             $('#state').empty();
             $('#city').empty();
             updateSelectList('state', data.value);
         });
         // 州/省变更的时候，更新城市的选择框
-        form.on('select(state)', function(data){
+        form.on('select(state)', function (data) {
             $('#city').empty();
             updateSelectList('city', data.value);
         });
 
 
+        // 初始化选择框的国家数据
+        updateSelectList('country', '');
 
         function updateSelectList(type, parent) {
             $.ajax({
+
                 url: '/city/list',
                 type: 'POST',
                 contentType: 'application/json',
@@ -267,7 +270,7 @@
                     parent: parent
                 }),
                 success: function (data) {
-                    select_element = $(`#${type}`)
+                    select_element = $('#' + type);
                     $.each(data.data, function (index, item) {
                         select_element.append(new Option(item.name, item.name));
                     });
@@ -282,8 +285,6 @@
                 }
             });
         }
-        // 初始化选择框的国家数据
-        updateSelectList('country', '');
     });
 </script>
 

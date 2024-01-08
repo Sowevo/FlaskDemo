@@ -15,7 +15,7 @@
         <button class="layui-btn layui-btn-sm" lay-event="delete">删除</button>
         <button class="layui-btn layui-btn-sm" lay-event="update">编辑</button>
     </div>
-    <div class="site-text" style="padding:20px; display: none" id="add_window">
+    <form class="layui-form" lay-filter="add_window" id="add_window" style="padding:20px; display: none">
         <div class="layui-form-item">
             <label class="layui-form-label">名称</label>
             <div class="layui-input-inline">
@@ -27,23 +27,33 @@
             <label class="layui-form-label">区域</label>
             <div style="display: flex; align-items: center;">
                 <div class="layui-input-inline" style="width: 100px; margin-right: 0;">
-                    <select id="country" lay-filter="country" lay-verify="required" lay-search=""></select>
+                    <select id="country" name="country" lay-filter="country" lay-verify="required"
+                            lay-search=""></select>
                 </div>
                 <div class="layui-input-inline" style="width: 100px; margin-right: 0;">
-                    <select id="state" lay-filter="state" lay-verify="required" lay-search=""></select>
+                    <select id="state" name="state" lay-filter="state" lay-verify="required" lay-search=""></select>
                 </div>
                 <div class="layui-input-inline" style="width: 100px;">
-                    <select id="city" lay-filter="city" lay-verify="required" lay-search=""></select>
+                    <select id="city" name="city" lay-filter="city" lay-verify="required" lay-search=""></select>
                 </div>
             </div>
         </div>
-    </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">舞台</label>
+            <div class="layui-input-inline">
+                <input type="text" id="stage" name="stage" placeholder="请输入" class="layui-input">
+            </div>
+        </div>
+    </form>
 </script>
 <script>
-    layui.use(["table", "form"], function () {
+    layui.use(["table", "form", "dropdown"], function () {
         const $ = layui.$;
         const table = layui.table;
         const form = layui.form;
+        const dropdown = layui.dropdown;
+
+
         const columns = [[
             {
                 type: 'checkbox',
@@ -172,6 +182,9 @@
             even: true, // 开启隔行背景
         });
 
+
+        // -------------------------    一些事件
+
         // 触发排序事件
         table.on('sort(point_table)', function (obj) {
             table.reload('point_table', {
@@ -223,9 +236,19 @@
                         shadeClose: true, //点击遮罩关闭
                         btn: ['确定', '取消'], //按钮组
                         content: $("#add_window"),
-                        yes: function (index) {
-                            layer.msg('假装添加了');
-                            layer.close(index);
+                        yes: function (index1) {
+                            form.submit('add_window', function (data) {
+                                const field = data.field; // 获取表单全部字段值
+                                // 执行提交
+                                layer.confirm('确定提交吗？', function (index2) {
+                                    layer.close(index1); // 关闭确认提示框
+                                    // 显示填写结果，仅作演示用
+                                    layer.alert(JSON.stringify(field), {
+                                        title: '当前填写的字段值'
+                                    });
+                                    layer.close(index2);
+                                });
+                            });
                         }
                     });
                     break;
@@ -246,19 +269,17 @@
         form.on('select(country)', function (data) {
             $('#state').empty();
             $('#city').empty();
-            updateSelectList('state', data.value);
+            updateCitySelectList('state', data.value);
         });
         // 州/省变更的时候，更新城市的选择框
         form.on('select(state)', function (data) {
             $('#city').empty();
-            updateSelectList('city', data.value);
+            updateCitySelectList('city', data.value);
         });
 
 
-        // 初始化选择框的国家数据
-        updateSelectList('country', '');
-
-        function updateSelectList(type, parent) {
+        // -------------------------    一些函数
+        function updateCitySelectList(type, parent) {
             $.ajax({
                 url: '/city/list',
                 type: 'POST',
@@ -276,14 +297,38 @@
                     // 更新选择框
                     form.render(select_element);
                     if (type === 'country') {
-                        updateSelectList('state', data.data[0].name);
+                        updateCitySelectList('state', data.data[0].name);
                     }
                     if (type === 'state') {
-                        updateSelectList('city', data.data[0].name);
+                        updateCitySelectList('city', data.data[0].name);
                     }
                 }
             });
         }
+
+        function updateStageSelectList() {
+            $.ajax({
+                url: '/stage/list',
+                type: 'POST',
+                success: function (data) {
+                    dropdown.render({
+                        elem: '#stage',
+                        data: data.data.map(item => ({title: item})),
+                        click: function (obj) {
+                            this.elem.val(obj.title);
+                        },
+                        style: 'min-width: 235px;'
+                    });
+                }
+            });
+        }
+
+
+        // -------------------------    初始化
+        // 初始化选择框的国家数据
+        updateCitySelectList('country', '');
+        // 初始化选择框的舞台数据
+        updateStageSelectList();
     });
 </script>
 

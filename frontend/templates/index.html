@@ -44,6 +44,12 @@
                 <input type="text" id="stage" name="stage" placeholder="请输入" class="layui-input">
             </div>
         </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="submit" class="layui-btn" lay-submit lay-filter="submit_btn">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
     </form>
 </script>
 <script>
@@ -228,28 +234,14 @@
                 case 'add':
                     layer.open({
                         type: 1, //Page层类型
+                        id: 'add_layer',
                         title: '新增',
                         offset: 'r',
                         anim: 'slideLeft', // 从右往左
                         area: ['60%', '100%'],  // 宽高
                         shade: 0.1, // 遮罩
                         shadeClose: true, //点击遮罩关闭
-                        btn: ['确定', '取消'], //按钮组
-                        content: $("#add_window"),
-                        yes: function (index1) {
-                            form.submit('add_window', function (data) {
-                                const field = data.field; // 获取表单全部字段值
-                                // 执行提交
-                                layer.confirm('确定提交吗？', function (index2) {
-                                    layer.close(index1); // 关闭确认提示框
-                                    // 显示填写结果，仅作演示用
-                                    layer.alert(JSON.stringify(field), {
-                                        title: '当前填写的字段值'
-                                    });
-                                    layer.close(index2);
-                                });
-                            });
-                        }
+                        content: $("#add_window")
                     });
                     break;
                 case 'delete':
@@ -263,6 +255,19 @@
                     layer.msg('假装编辑了');
                     break;
             }
+        });
+
+        // 监听表单提交
+        form.on('submit(submit_btn)', function (data) {
+            const field = data.field; // 获取表单字段值
+            // 显示填写结果，仅作演示用
+            layer.alert(JSON.stringify(field), {
+                title: '当前填写的字段值'
+            });
+            // 此处可执行 Ajax 等操作
+            // …
+            layer.close('add_layer'); // 关闭弹窗
+            return false;
         });
 
         // 国家变更的时候，更新州/省的选择框

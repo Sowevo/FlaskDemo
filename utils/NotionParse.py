@@ -1,10 +1,11 @@
 # coding=utf-8
-import csv
 import os
 import re
 import shutil
 import zipfile
 from datetime import datetime
+
+import pandas as pd
 
 from utils.B2 import B2Uploader
 
@@ -97,13 +98,18 @@ def read_csv(_work_dir, _file_id):
     读取csv文件
     """
     # 打开csv文件
-    csv_path = os.path.join(_work_dir, _file_id + '_all.csv')
-    with open(csv_path, mode='r', encoding='utf-8-sig') as file:
-        # 读取csv文件
-        reader = csv.DictReader(file)
-        # 转换为字典
-        _result = [row for row in reader]
-    return _result
+    csv_path = os.path.join(_work_dir, f"{_file_id}_all.csv")
+
+    # 使用 pandas 读取 CSV 文件并转换为 DataFrame
+    result = pd.read_csv(csv_path, encoding='utf-8-sig')
+
+    # 过滤掉名字为空的异常数据
+    result = result[result['名字'].notna()]
+
+    # 将 DataFrame 转换为字典列表
+    result_dict_list = result.to_dict(orient='records')
+
+    return result_dict_list
 
 
 def find_google_url(_db_id, _name, _work_dir):
@@ -150,8 +156,6 @@ def parse(zip_file):
     common_name = unzip(zip_file, unzip_path)
     # 读取csv文件
     result = read_csv(unzip_path, common_name)
-    # 过滤掉没有名字的数据
-    result = list(filter(lambda d: d['名字'], result))
     # 补充地图链接
     for e in result:
         embedded_url = find_google_url(common_name, e['名字'], unzip_path)

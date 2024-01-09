@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 import utils.NotionParse as NotionParse
 from models.model import db, Point, City
-from utils import ExcelParse
+from utils import ExcelParse, GoogleMap
 from utils.B2 import B2Uploader
 from utils.JsonFlask import CustomJSONProvider, JsonFlask
 from utils.Resp import PageResp, Resp
@@ -112,6 +112,21 @@ def list_dropdown():
     )
     results = [result[0] for result in results]
     return results
+
+
+@app.route('/dropdown/name', methods=['POST'])
+def name_dropdown():
+    """
+    名称的下拉搜索
+    :return:
+    """
+    data = request.get_json()
+    name = data.get('name', '')
+    if name:
+        result = GoogleMap.places_search_text(name)
+        return Resp.success(result)
+    else:
+        return []
 
 
 @app.route('/city/list', methods=['POST'])
@@ -243,6 +258,16 @@ def upload_image():
         file.save(save_path)
         path = B2Uploader().upload_file(save_path)
     return path
+
+
+@app.route('/test', methods=['POST'])
+def test():
+    """
+    测试用的接口
+    :return:
+    """
+    result = GoogleMap.places_search_text('6')
+    return Resp.success(result)
 
 
 @app.errorhandler(404)

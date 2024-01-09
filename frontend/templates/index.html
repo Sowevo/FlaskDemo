@@ -22,13 +22,6 @@
     </div>
     <form class="layui-form" lay-filter="add_window" id="add_window" style="padding:20px; display: none">
         <div class="layui-form-item">
-            <label class="layui-form-label">名称</label>
-            <div class="layui-input-inline" style="width:320px;">
-                <input type="text" name="name" lay-verify="required" placeholder="请输入" autocomplete="off"
-                       class="layui-input" data-1p-ignore>
-            </div>
-        </div>
-        <div class="layui-form-item">
             <label class="layui-form-label">区域</label>
             <div style="display: flex; align-items: center;">
                 <div style="display: flex; align-items: center;">
@@ -43,6 +36,13 @@
                         <select id="city" name="city" lay-filter="city" lay-verify="required" lay-search=""></select>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">名称</label>
+            <div class="layui-input-inline" style="width:320px;">
+                <input type="text" id="name" name="name" lay-verify="required" placeholder="请输入" autocomplete="off"
+                       class="layui-input" data-1p-ignore>
             </div>
         </div>
         <div class="layui-form-item">
@@ -204,6 +204,14 @@
             height: 'full-0',
             even: true, // 开启隔行背景
         });
+        const name_dropdown = dropdown.render({
+            elem: '#name',
+            style: 'min-width: 235px;',
+            trigger: 'hover',
+            click: function (data) {
+                this.elem.val(data.title);
+            }
+        });
 
 
         // -------------------------    一些事件
@@ -298,6 +306,45 @@
         form.on('select(state)', function (data) {
             $('#city').empty();
             updateCitySelectList('city', data.value);
+        });
+        //监听输入名称时的提示事件
+        let timer = null; // 防抖处理
+        $(name_dropdown.config.elem).on('input propertychange', function () {
+            const elem = $(this);
+            const keyword = elem.val().trim();//获取输入的关键词
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (keyword) {
+                    $.ajax({
+                        url: '/dropdown/name',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        dataType: 'json',
+                        data: JSON.stringify({
+                            name: keyword,
+                        }),
+                        success: function (data) {
+                            // 判断有没有places对象
+                            if (!data.data.places) {
+                                console.log('没有places对象');
+                                return;
+                            }
+                            dataNew = data.data.places.map(x => ({
+                                title: x.displayName.text,
+                                formattedAddress: x.formattedAddress
+                            }))
+                            console.table(dataNew)
+                            dropdown.reloadData(name_dropdown.config.id, {
+                                data: dataNew
+                            });
+                        }
+                    });
+                } else {
+                    dropdown.reloadData(name_dropdown.config.id, {
+                        data: [], // 匹配到的新数据
+                    });
+                }
+            }, 500); // 此处的500毫秒就是你的延迟时间
         });
 
 

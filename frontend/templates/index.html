@@ -6,6 +6,11 @@
     <title>Demo</title>
     <link href="//unpkg.com/layui@2.9.3/dist/css/layui.css" rel="stylesheet">
     <script src="//unpkg.com/layui@2.9.3/dist/layui.js"></script>
+    <style>
+        .layui-form-label {
+            width: 70px
+        }
+    </style>
 </head>
 <body>
 <table class="layui-hide" id="point_table"></table>
@@ -18,7 +23,7 @@
     <form class="layui-form" lay-filter="add_window" id="add_window" style="padding:20px; display: none">
         <div class="layui-form-item">
             <label class="layui-form-label">名称</label>
-            <div class="layui-input-inline">
+            <div class="layui-input-inline" style="width:320px;">
                 <input type="text" name="name" lay-verify="required" placeholder="请输入" autocomplete="off"
                        class="layui-input" data-1p-ignore>
             </div>
@@ -26,22 +31,28 @@
         <div class="layui-form-item">
             <label class="layui-form-label">区域</label>
             <div style="display: flex; align-items: center;">
-                <div class="layui-input-inline" style="width: 100px; margin-right: 0;">
-                    <select id="country" name="country" lay-filter="country" lay-verify="required"
-                            lay-search=""></select>
-                </div>
-                <div class="layui-input-inline" style="width: 100px; margin-right: 0;">
-                    <select id="state" name="state" lay-filter="state" lay-verify="required" lay-search=""></select>
-                </div>
-                <div class="layui-input-inline" style="width: 100px;">
-                    <select id="city" name="city" lay-filter="city" lay-verify="required" lay-search=""></select>
+                <div style="display: flex; align-items: center;">
+                    <div class="layui-input-inline" style="width: 100px; margin-right: 10px;">
+                        <select id="country" name="country" lay-filter="country" lay-verify="required"
+                                lay-search=""></select>
+                    </div>
+                    <div class="layui-input-inline" style="width: 100px; margin-right: 10px;">
+                        <select id="state" name="state" lay-filter="state" lay-verify="required" lay-search=""></select>
+                    </div>
+                    <div class="layui-input-inline" style="width: 100px;">
+                        <select id="city" name="city" lay-filter="city" lay-verify="required" lay-search=""></select>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="layui-form-item">
             <label class="layui-form-label">舞台</label>
-            <div class="layui-input-inline">
+            <div class="layui-input-inline" style="width:120px;">
                 <input type="text" id="stage" name="stage" placeholder="请输入" class="layui-input">
+            </div>
+            <label class="layui-form-label"">门票</label>
+            <div class="layui-input-inline" style="width:120px;">
+                <input type="text" id="ticket" name="ticket" placeholder="请输入" class="layui-input">
             </div>
         </div>
         <div class="layui-form-item">
@@ -236,10 +247,11 @@
                         type: 1, //Page层类型
                         id: 'add_layer',
                         title: '新增',
-                        offset: 'r',
+                        offset: 'r', //右侧打开
                         anim: 'slideLeft', // 从右往左
-                        area: ['60%', '100%'],  // 宽高
+                        area: ['450px', '100%'],  // 宽高
                         shade: 0.1, // 遮罩
+                        scrollbar: false, // 禁止浏览器滚动
                         shadeClose: true, //点击遮罩关闭
                         content: $("#add_window")
                     });
@@ -311,13 +323,19 @@
             });
         }
 
-        function updateStageSelectList() {
+        function updateDropdownList(type) {
             $.ajax({
-                url: '/stage/list',
+                url: '/dropdown/list',
                 type: 'POST',
+                contentType: 'application/json',
+                dataType: 'json',
+                data: JSON.stringify({
+                    type: type,
+                }),
                 success: function (data) {
+                    select_element = $('#' + type);
                     dropdown.render({
-                        elem: '#stage',
+                        elem: select_element,
                         data: data.data.map(item => ({title: item})),
                         click: function (obj) {
                             this.elem.val(obj.title);
@@ -333,7 +351,9 @@
         // 初始化选择框的国家数据
         updateCitySelectList('country', '');
         // 初始化选择框的舞台数据
-        updateStageSelectList();
+        updateDropdownList('stage');
+        // 初始化选择框的舞台数据
+        updateDropdownList('ticket');
     });
 </script>
 

@@ -92,12 +92,22 @@ def add_point():
     return point
 
 
-@app.route('/stage/list', methods=['POST'])
-def list_stage():
+@app.route('/dropdown/list', methods=['POST'])
+def list_dropdown():
+    """
+    获取指定字段的下拉列表
+    :return:
+    """
+    data = request.get_json()
+    _type = data.get('type', 'stage')
+    # 判断type是否合法,是否是Point的字段
+    if not hasattr(Point, _type):
+        return Resp.error(msg='请求参数错误')
+
     results = (
-        db.session.query(Point.stage)
-        .group_by(Point.stage)
-        .order_by(func.count(Point.stage).desc())
+        db.session.query(getattr(Point, _type))
+        .group_by(getattr(Point, _type))
+        .order_by(func.count(getattr(Point, _type)).desc())
         .all()
     )
     results = [result[0] for result in results]

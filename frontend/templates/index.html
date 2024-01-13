@@ -210,6 +210,8 @@
             trigger: 'hover',
             click: function (data) {
                 this.elem.val(data.title);
+
+                updateCitySelectList('country', null, [data.country, data.state, data.city]);
             }
         });
 
@@ -324,16 +326,33 @@
                             name: keyword,
                         }),
                         success: function (data) {
-                            // 判断有没有places对象
-                            if (!data.data.places) {
-                                console.log('没有places对象');
-                                return;
+                            let dataNew = []
+                            if (!data.data.places || data.data.places.length === 0) {
+                                console.log('没有places对象或者places为空');
+                            } else {
+                                dataNew = data.data.places.map(x => {
+                                    // 过滤地址组件
+                                    let locationString = x.location.latitude.toString() + ',' + x.location.longitude.toString();
+                                    let returnObject = {
+                                        title: x.displayName.text,
+                                        formattedAddress: x.formattedAddress,
+                                        googleMapsUri: x.googleMapsUri,
+                                        location: locationString
+                                    }
+                                    let country = x.addressComponents.find(y => y.types.includes("country") && y.types.includes("political"));
+                                    let state = x.addressComponents.find(y => y.types.includes("administrative_area_level_1") && y.types.includes("political"));
+                                    let city = x.addressComponents.find(y => y.types.includes("locality") && y.types.includes("political"));
+                                    // 判断三者是否都不为空
+                                    if (country && state && city) {
+                                        returnObject.country = country.longText;
+                                        returnObject.state = state.longText;
+                                        returnObject.city = city.longText;
+                                    }
+                                    // 返回处理后的新对象
+                                    return returnObject;
+                                });
+                                console.table(dataNew);
                             }
-                            dataNew = data.data.places.map(x => ({
-                                title: x.displayName.text,
-                                formattedAddress: x.formattedAddress
-                            }))
-                            console.table(dataNew)
                             dropdown.reloadData(name_dropdown.config.id, {
                                 data: dataNew
                             });
@@ -349,7 +368,17 @@
 
 
         // -------------------------    一些函数
-        function updateCitySelectList(type, parent) {
+        /**
+         * 更新城市选择列表
+         * @param {string} type - 提交请求的类型('country', 'state', or 'city')
+         * @param {string} parent - 提交请求的父级名称
+         * @param {Array} defaultOptions - 默认选项的数组
+         */
+        function updateCitySelectList(type, parent, defaultOptions) {
+            // 如果`defaultOptions`存在且有元素，取其第一个元素作为默认选项，否则设为null
+            let defaultOption = defaultOptions && defaultOptions.length > 0 ? defaultOptions.shift() : null;
+
+            // 发送ajax请求
             $.ajax({
                 url: '/city/list',
                 type: 'POST',
@@ -360,17 +389,38 @@
                     parent: parent
                 }),
                 success: function (data) {
-                    select_element = $('#' + type);
-                    $.each(data.data, function (index, item) {
-                        select_element.append(new Option(item.name, item.name));
-                    });
-                    // 更新选择框
-                    form.render(select_element);
-                    if (type === 'country') {
-                        updateCitySelectList('state', data.data[0].name);
+                    // 在返回的数据中找到与当前请求类型对应的选择元素
+                    const select_element = $('#' + type);
+
+                    // 如果没有默认选项且返回的数据有元素，把第一个元素设为默认选项
+                    if (!defaultOption && data.data.length > 0) {
+                        defaultOption = data.data[0].name;
                     }
-                    if (type === 'state') {
-                        updateCitySelectList('city', data.data[0].name);
+
+                    // 遍历返回的数据，在选择列表中添加对应的选项
+                    $.each(data.data, function (index, item) {
+                        if (item.name === defaultOption) {
+                            // 如果数据项的名字与默认选项匹配，把选项加入到选择列表中，并设置为选中
+                            select_element.append(new Option(item.name, item.name, true, true));
+                        } else {
+                            // 否则，只是把选项加入到选择列表中
+                            select_element.append(new Option(item.name, item.name));
+                        }
+                    });
+
+                    // 刷新表单元素
+                    form.render(select_element);
+
+                    // 如果`defaultOptions`仍有剩余元素，或当前类型不是“city”，更新下一个选择列表
+                    if ((defaultOptions && defaultOptions.length > 0) || type !== 'city') {
+                        switch (type) {
+                            case 'country': // 当前类型是'country'，更新'state'
+                                updateCitySelectList('state', defaultOption, defaultOptions);
+                                break;
+                            case 'state': // 当前类型是'state'，更新'city'
+                                updateCitySelectList('city', defaultOption, defaultOptions);
+                                break;
+                        }
                     }
                 }
             });
@@ -402,7 +452,7 @@
 
         // -------------------------    初始化
         // 初始化选择框的国家数据
-        updateCitySelectList('country', '');
+        updateCitySelectList('country');
         // 初始化选择框的舞台数据
         updateDropdownList('stage');
         // 初始化选择框的舞台数据

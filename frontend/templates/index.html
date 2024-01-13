@@ -8,7 +8,7 @@
     <script src="//unpkg.com/layui@2.9.3/dist/layui.js"></script>
     <style>
         .layui-form-label {
-            width: 70px
+            width: 90px
         }
     </style>
 </head>
@@ -21,6 +21,13 @@
         <button class="layui-btn layui-btn-sm" lay-event="update">编辑</button>
     </div>
     <form class="layui-form" lay-filter="add_window" id="add_window" style="padding:20px; display: none">
+        <div class="layui-form-item">
+            <label class="layui-form-label">名称</label>
+            <div class="layui-input-inline" style="width:320px;">
+                <input type="text" id="name" name="name" lay-verify="required" placeholder="请输入" autocomplete="off"
+                       class="layui-input" data-1p-ignore>
+            </div>
+        </div>
         <div class="layui-form-item">
             <label class="layui-form-label">区域</label>
             <div style="display: flex; align-items: center;">
@@ -39,10 +46,17 @@
             </div>
         </div>
         <div class="layui-form-item">
-            <label class="layui-form-label">名称</label>
+            <label class="layui-form-label">地图链接</label>
             <div class="layui-input-inline" style="width:320px;">
-                <input type="text" id="name" name="name" lay-verify="required" placeholder="请输入" autocomplete="off"
-                       class="layui-input" data-1p-ignore>
+                <input type="text" id="google_map_url" name="google_map_url" lay-affix="website" lay-verify="required"
+                       placeholder="请输入" autocomplete="off" class="layui-input" lay-filter="website">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">坐标</label>
+            <div class="layui-input-inline" style="width:320px;">
+                <input type="text" id="coordinates" name="coordinates" lay-verify="required"
+                       placeholder="请输入" autocomplete="off" class="layui-input">
             </div>
         </div>
         <div class="layui-form-item">
@@ -50,7 +64,7 @@
             <div class="layui-input-inline" style="width:120px;">
                 <input type="text" id="stage" name="stage" placeholder="请输入" class="layui-input">
             </div>
-            <label class="layui-form-label">门票</label>
+            <label class="layui-form-label" style="width: 70px;">门票</label>
             <div class="layui-input-inline" style="width:120px;">
                 <input type="text" id="ticket" name="ticket" placeholder="请输入" class="layui-input">
             </div>
@@ -210,8 +224,9 @@
             trigger: 'hover',
             click: function (data) {
                 this.elem.val(data.title);
-
                 updateCitySelectList('country', null, [data.country, data.state, data.city]);
+                $('#google_map_url').val(data.googleMapsUri);
+                $('#coordinates').val(data.location);
             }
         });
 
@@ -265,7 +280,7 @@
                         title: '新增',
                         offset: 'r', //右侧打开
                         anim: 'slideLeft', // 从右往左
-                        area: ['450px', '100%'],  // 宽高
+                        area: ['480px', '100%'],  // 宽高
                         shade: 0.1, // 遮罩
                         scrollbar: false, // 禁止浏览器滚动
                         shadeClose: true, //点击遮罩关闭
@@ -309,6 +324,15 @@
             $('#city').empty();
             updateCitySelectList('city', data.value);
         });
+        // 输入框点缀事件 - 位置示例
+        form.on('input-affix(website)', function (data) {
+            let url = $('#google_map_url').val();
+            if (url) {
+                window.open(url);
+            } else {
+                layer.msg('没有链接你点个锤子');
+            }
+        });
         //监听输入名称时的提示事件
         let timer = null; // 防抖处理
         $(name_dropdown.config.elem).on('input propertychange', function () {
@@ -327,9 +351,7 @@
                         }),
                         success: function (data) {
                             let dataNew = []
-                            if (!data.data.places || data.data.places.length === 0) {
-                                console.log('没有places对象或者places为空');
-                            } else {
+                            if (!(!data.data.places || data.data.places.length === 0)) {
                                 dataNew = data.data.places.map(x => {
                                     // 过滤地址组件
                                     let locationString = x.location.latitude.toString() + ',' + x.location.longitude.toString();
@@ -351,7 +373,6 @@
                                     // 返回处理后的新对象
                                     return returnObject;
                                 });
-                                console.table(dataNew);
                             }
                             dropdown.reloadData(name_dropdown.config.id, {
                                 data: dataNew
